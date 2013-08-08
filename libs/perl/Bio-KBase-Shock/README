@@ -1,0 +1,19 @@
+Bio-KBase-Shock
+
+INSTALLATION
+
+To install this module, run the following commands:
+
+	perl Makefile.PL
+	make
+	make install
+
+Notes:
+
+Make sure to use the KBase installed perl, not the system installed perl
+when running perl Makefile.PL (ie. /kb/runtime/bin/perl Makefile.PL);
+
+Using the KBase installed perl alone won't get the libs installed in the
+right spot. The --prefix option to Makefile.PL should be used and set to
+the value of $TARGET or $TARGET/lib (need to check which).
+

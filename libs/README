@@ -1,0 +1,17 @@
+KBase Shock Libraries
+
+Note: To populate source for this directory run ./prepare.sh
+
+INSTALLING LIBRARIES
+
+Javascript
+
+    No installation provided. Usage documentation in comments of js/KBaseShock.js
+
+Perl
+
+    See perl/Bio-KBase-Shock/README.
+    
+Python
+
+    See python/README.

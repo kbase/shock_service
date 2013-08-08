@@ -28,18 +28,20 @@ include $(KB_TOP)/tools/Makefile.common
 
 all: deploy
 
-deploy: deploy-service
+deploy: deploy-libs deploy-client deploy-service
 
-# deploy-all is depricted, consider removing it and using the deploy target
-deploy-all: deploy-service 
+deploy-libs:
+	sh install-libs.sh $(TARGET)
+	
+deploy-client: deploy-service
 
 deploy-service: initialize
 	$(TPAGE) $(TPAGE_PROD_ARGS) shock.cfg.tt > shock.cfg
-	sh install.sh $(SERVICE_DIR) $(TARGET) prod
+	sh install-service.sh $(SERVICE_DIR) $(TARGET) prod
 
 deploy-service-test: initialize
 	$(TPAGE) $(TPAGE_TEST_ARGS) shock.cfg.tt > shock.cfg
-	sh install.sh $(SERVICE_DIR) $(TARGET) test
+	sh install-service.sh $(SERVICE_DIR) $(TARGET) test
 
 initialize:
 	git submodule init

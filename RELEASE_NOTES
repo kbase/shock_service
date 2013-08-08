@@ -1,0 +1,15 @@
+OVERVIEW
+-----------------------------------------
+Shock provides KBase with large file storage capabilities. For more information on Shock please see github.com/MG-RAST/Shock. This repository contains code necessary for deployment in the KBase environment and client libraries. 
+
+VERSION: 0.1 (Released 8/8/2013)
+------------------------------------------
+NEW FEATURES:
+ - timestamped nodes
+ - perl, javascript, python client libraries
+ - templated configuration and deployment files
+ - new repository in kbase github
+ - shock-client with parallel upload / download 
+
+UPDATED FEATURES / MAJOR BUG FIXES:
+ - code cleanup, reorganisation 
