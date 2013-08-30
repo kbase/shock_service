@@ -2,7 +2,7 @@ TARGET ?= /kb/deployment
 DEPLOY_RUNTIME = /kb/runtime
 SERVICE = shock_service
 SERVICE_DIR = $(TARGET)/services/$(SERVICE)
-TPAGE_ARGS = --define kb_top=$(TARGET)
+TPAGE_ARGS = --define kb_top=$(TARGET) --define service=$(SERVICE)
 
 TPAGE_PROD_ARGS = --define site_url=http://kbase.us/services/shock \
 --define api_url=http://kbase.us/services/shock	\
