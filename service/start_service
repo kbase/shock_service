@@ -1,0 +1,32 @@
+#!/bin/bash
+
+source /kb/deployment/user-env.sh
+
+SERVICE=shock_service
+SERVICE_DIR=$KB_TOP/services/$SERVICE
+
+HELP=0
+ENVIRONMENT="prod"
+SHOCK_CONFIG=$KB_TOP/services/shock_service/conf/shock.cfg
+
+while getopts he: option; do
+	case "${option}"
+		in
+		h) HELP=1;;
+		e) ENVIRONMENT=${OPTARG};;
+	esac
+done
+
+if [ $HELP -eq 1 ]; then
+	echo "Usage: start_service [-h] -e <prod/test>"
+	echo "	-h help"
+	echo "	-e environment <prod,test> (default prod)"
+	exit
+fi
+
+if [ "$ENVIRONMENT" == "test" ]; then
+	SHOCK_CONFIG=$KB_TOP/services/shock_service/conf/shock_test.cfg
+fi
+
+echo "/kb/runtime/sbin/daemonize -v -p $SERVICE_DIR/service.pid $KB_TOP/bin/shock-server -conf $SHOCK_CONFIG"
+/kb/runtime/sbin/daemonize -v -p $SERVICE_DIR/service.pid $KB_TOP/bin/shock-server -conf $SHOCK_CONFIG 
