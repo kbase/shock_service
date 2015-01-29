@@ -83,12 +83,12 @@ $(BIN_DIR)/shock-server: Shock/shock-server/main.go
 	mkdir -p site
 	rsync -arv --exclude=.git $(GO_TMP_DIR)/src/github.com/MG-RAST/Shock/shock-server/site/* site/.
 
-deploy: deploy-libs deploy-client deploy-service
+deploy: deploy-client deploy-service
 
 deploy-libs:
 	rsync --exclude '*.bak' -arv Shock/libs/. $(TARGET)/lib/.
 
-deploy-client: all
+deploy-client: all deploy-libs
 	cp $(BIN_DIR)/shock-client $(TARGET)/bin/shock-client
 
 deploy-service: all
