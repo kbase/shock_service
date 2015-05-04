@@ -4,9 +4,11 @@ DEPLOY_RUNTIME = /kb/runtime
 SERVICE = shock_service
 SERVICE_DIR = $(TARGET)/services/$(SERVICE)
 
-GO_TMP_DIR = /tmp/go_build.tmp
+TOP_ABS = $(shell $(TOP_DIR)/runtime/bin/perl -MCwd -e 'print Cwd::abs_path("$(TOP_DIR)") ')
 
-PRODUCTION = 0 
+GO_TMP_DIR = $(TOP_ABS)/tmp/go_build.tmp
+
+PRODUCTION = 0
 
 ifeq ($(PRODUCTION), 1)
 	SHOCK_SITE = /disk0/site
@@ -66,7 +68,7 @@ include $(TOP_DIR)/tools/Makefile.common
 
 all: initialize prepare build-shock
 
-build-shock: $(BIN_DIR)/shock-server
+build-shock: $(BIN_DIR)/shock-server 
 
 $(BIN_DIR)/shock-server: Shock/shock-server/main.go
 	rm -rf $(GO_TMP_DIR)
@@ -77,6 +79,9 @@ $(BIN_DIR)/shock-server: Shock/shock-server/main.go
 	cd $(GO_TMP_DIR)/; export GOPATH=$(GO_TMP_DIR); make install
 	cp $(GO_TMP_DIR)/bin/shock-server $(BIN_DIR)/shock-server
 	cp $(GO_TMP_DIR)/bin/shock-client $(BIN_DIR)/shock-client
+	rm -rf site
+	mkdir -p site
+	rsync -arv --exclude=.git $(GO_TMP_DIR)/src/github.com/MG-RAST/Shock/shock-server/site/* site/.
 
 deploy: deploy-libs deploy-client deploy-service
 
@@ -91,7 +96,7 @@ deploy-service: all
 	$(TPAGE) $(TPAGE_ARGS) shock.cfg.tt > shock.cfg
 
 	mkdir -p $(SHOCK_SITE) $(SHOCK_DATA) $(SHOCK_LOGS)
-	rsync -arv --exclude=.git $(GO_TMP_DIR)/src/github.com/MG-RAST/Shock/shock-server/site/* $(SHOCK_SITE)/
+	rsync -arv --exclude=.git site/* $(SHOCK_SITE)/
 
 	mkdir -p $(SERVICE_DIR) $(SERVICE_DIR)/conf $(SERVICE_DIR)/logs/shock $(SERVICE_DIR)/data/temp
 	cp -v shock.cfg $(SERVICE_DIR)/conf/shock.cfg
