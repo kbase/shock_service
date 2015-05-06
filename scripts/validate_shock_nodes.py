@@ -8,6 +8,7 @@ import hashlib
 from bson import BSON
 from time import strftime
 from configobj import ConfigObj
+from pymongo import MongoClient
 
 def hashfile(afile, hasher, blocksize=65536):
     buf = afile.read(blocksize)
@@ -16,32 +17,22 @@ def hashfile(afile, hasher, blocksize=65536):
         buf = afile.read(blocksize)
     return hasher.hexdigest()
 
-def validate_dir_contents(ndir, md5):
+def validate_dir_contents(ndir, node, md5):
     # Each node directory should contain at least a bson file and an idx/ directory
     nid = os.path.basename(os.path.normpath(ndir))
     idir = ndir + "/idx"
+    err = 0
     if not os.path.isdir(idir):
-        sys.stdout.write("[data invalid]: node " + nid + " is missing idx directory\n")
+        sys.stderr.write("[data invalid]: node " + nid + " is missing idx directory\n")
+	err = 1
 
     bfile = ndir + "/" + nid + ".bson"
     if not os.path.isfile(bfile):
-        sys.stdout.write("[data needs repair]: node " + nid + " is missing bson file, directory should be deleted\n")
-	return 0
-
-    if os.path.getsize(bfile) == 0:
-        sys.stdout.write("[data invalid]: node " + nid + " has zero size bson file\n")
-	return 0
-
-    # bson file exists and is non-zero, now validate:
-    #     - Existence of any index files
-    #     - Existence of data file (if node is non-empty)
-    #     - Size of data file
-    #     - md5 of data file (optional)
-
-    # reading bson file
-    bfh = open(bfile)
-    bobj = BSON(bfh.read())
-    node = bson.BSON.decode(bobj)
+        sys.stderr.write("[data invalid]: node " + nid + " is missing bson file\n")
+	err = 1
+    elif os.path.getsize(bfile) == 0:
+        sys.stderr.write("[data invalid]: node " + nid + " has zero size bson file\n")
+	err = 1
 
     # setting default data file path, if different path is set, replace this
     dfile = ndir + "/" + nid + ".data"
@@ -51,17 +42,20 @@ def validate_dir_contents(ndir, md5):
     # if the file md5 checksum is set and this is a regular node, then we know a file should exist, check for file existence, file size, and md5 (optional)
     if "md5" in node["file"]["checksum"] and node["file"]["checksum"]["md5"] != "" and ("type" not in node or node["type"] not in ["parts", "subset", "copy", "virtual"]):
         if not os.path.isfile(dfile):
-            sys.stdout.write("[data invalid]: node " + nid + " is missing it's data file (path=" + dfile + ")\n")
-            return 0
+            sys.stderr.write("[data invalid]: node " + nid + " is missing it's data file (path=" + dfile + ")\n")
+            return 1
         dsize = os.path.getsize(dfile)
         if node["file"]["size"] != dsize:
-            sys.stdout.write("[data invalid]: node " + nid + " has data file with size=" + str(dsize) + " but bson doc says file size=" + str(node["file"]["size"]) + "\n")
-            return 0
+            sys.stderr.write("[data invalid]: node " + nid + " has data file with size=" + str(dsize) + " but bson doc says file size=" + str(node["file"]["size"]) + "\n")
+            return 1
         if md5:
             dmd5 = hashfile(open(dfile, 'rb'), hashlib.md5(), 65536)
             if dmd5 != node["file"]["checksum"]["md5"]:
-                sys.stdout.write("[data invalid]: node " + nid + " has data file with md5=" + dmd5 + " but bson doc says file md5=" + node["file"]["checksum"]["md5"] + "\n")
-                return 0
+                sys.stderr.write("[data invalid]: node " + nid + " has data file with md5=" + dmd5 + " but bson doc says file md5=" + node["file"]["checksum"]["md5"] + "\n")
+                return 1
+
+    if err == 1:
+        return 1
 
     return 0
 
@@ -120,11 +114,36 @@ def main(args):
         if key in opts and val is not None:
             opts[key] = val
 
-    print "Running validation with the following config parameters:"
+    print "\nRunning validation with the following config parameters:"
     for key, val in opts.iteritems():
         print key + " =",
 	print val
     print ""
+
+    # Error handling for parameters
+    if opts['username'] == '':
+        print "[INFO] username is empty, will connect to MongoDB without authentication."
+    if opts['password'] == '':
+        print "[INFO] password is empty, will connect to MongoDB without authentication."
+
+    # Connect to MongoDB and iterate over nodes
+    c = MongoClient(opts['host'])
+    db = c[opts['database']]
+    if opts['username'] != '' and opts['password'] != '':
+        db.authenticate(opts['username'], opts['password'])
+
+    nodes_passed_validation = 0
+    nodes_failed_validation = 0
+    for node in db.Nodes.find({}):
+        nid = node['id']
+        path = os.path.join(opts['node_dir'], nid[:2] + '/' + nid[2:4] + '/' + nid[4:6] + '/' + nid)
+	if validate_dir_contents(path, node, opts['md5']) == 0:
+            nodes_passed_validation += 1
+        else:
+            nodes_failed_validation += 1
+
+    sys.stdout.write("Number of nodes that passed validation = %d\n" % nodes_passed_validation)
+    sys.stdout.write("Number of nodes that failed validation = %d\n" % nodes_failed_validation)
 
     return 0
 
